@@ -5,6 +5,7 @@ from datetime import date
 import httpx
 
 from app.config import settings
+from app.models import ZERO_DECIMAL_CURRENCIES
 
 
 class PaymentError(Exception):
@@ -41,6 +42,10 @@ def _get_token() -> str:
     return _token_cache["value"]
 
 
+def _format_amount(value: float, currency: str) -> str:
+    return f"{value:.0f}" if currency in ZERO_DECIMAL_CURRENCIES else f"{value:.2f}"
+
+
 def _build_invoice_payload(invoice: dict) -> dict:
     today = date.today().isoformat()
 
@@ -73,7 +78,7 @@ def _build_invoice_payload(invoice: dict) -> dict:
             "quantity": str(item["quantity"]),
             "unit_amount": {
                 "currency_code": invoice["currency"],
-                "value": f"{item['unit_price']:.2f}",
+                "value": _format_amount(item["unit_price"], invoice["currency"]),
             },
         }
         for item in invoice["items"]

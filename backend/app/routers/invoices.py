@@ -19,7 +19,7 @@ def create_invoice(payload: InvoiceCreate):
     doc = {
         **data,
         "total": total,  # we calculate it, never the AI
-        "currency": "USD",
+        "currency": data["currency"],
         "status": "DRAFT",
         "paypal_invoice_id": None,
         "payment_url": None,
@@ -57,14 +57,15 @@ def list_invoices(
 
 @router.get("/summary")
 def summary():
-    """Numbers for the dashboard cards."""
-    result = {
-        "PAID": {"count": 0, "amount": 0.0},
-        "PENDING": {"count": 0, "amount": 0.0},
-        "OVERDUE": {"count": 0, "amount": 0.0},
-    }
+    """Dashboard numbers grouped by currency (we never add different currencies)."""
+    result: dict = {}
     for doc in mongo.invoices.find({"status": {"$in": ["SENT", "PAID"]}}):
-        bucket = result[display_status(doc)]
+        currency = doc.get("currency", "USD")
+        buckets = result.setdefault(
+            currency,
+            {k: {"count": 0, "amount": 0.0} for k in ("PAID", "PENDING", "OVERDUE")},
+        )
+        bucket = buckets[display_status(doc)]
         bucket["count"] += 1
         bucket["amount"] = round(bucket["amount"] + doc["total"], 2)
     return result

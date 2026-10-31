@@ -5,7 +5,7 @@ from groq import Groq
 from pydantic import ValidationError
 
 from app.config import settings
-from app.models import ExtractedInvoice
+from app.models import SUPPORTED_CURRENCIES, ExtractedInvoice
 
 client = Groq(api_key=settings.groq_api_key)
 
@@ -23,7 +23,8 @@ Return ONLY a JSON object with exactly these keys:
   "client_email": string or null,
   "items": [{"description": string, "quantity": integer, "unit_price": number}],
   "due_date": "YYYY-MM-DD" or null,
-  "notes": string or null
+  "notes": string or null,
+  "currency": 3-letter code or null
 }
 
 Rules:
@@ -34,6 +35,7 @@ Rules:
 - Use quantity above 1 only when the chat clearly says a count of identical things with a price each.
 - unit_price is a plain number with no currency symbol. Do not add up totals yourself.
 - Resolve dates like "next Friday" or "in 10 days" into YYYY-MM-DD using today's date.
+- currency: one of __CURRENCIES__. Words like dollars, euros, pounds map to USD, EUR, GBP. A lone $ means USD. If the currency is not mentioned or not in the list, use null.
 - notes: only useful extra info from the chat (payment terms, project name). Otherwise null.
 """
 
@@ -65,7 +67,7 @@ def extract_invoice(chat_text: str) -> ExtractedInvoice:
     today = date.today()
     system = EXTRACT_PROMPT.replace("__TODAY__", today.isoformat()).replace(
         "__WEEKDAY__", today.strftime("%A")
-    )
+    ).replace("__CURRENCIES__", ", ".join(sorted(SUPPORTED_CURRENCIES)))
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": chat_text},
