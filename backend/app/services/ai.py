@@ -41,10 +41,17 @@ Rules:
 
 REMINDER_PROMPT = """You write short, polite payment reminder messages for a freelancer.
 Write the message body only (no subject line). Plain text, 3 to 5 sentences.
-Tone: warm, professional, never pushy or threatening.
+Never threaten, insult or mention legal action.
 Mention the invoice total, the due date, and how late it is (or that it is coming up).
 If a payment link is given, include it once. End with "Best regards," and then "[Your name]".
 """
+
+
+REMINDER_TONES = {
+    "friendly": "Tone: warm and casual, a gentle nudge. Assume it was simply forgotten.",
+    "firm": "Tone: polite but direct. Say clearly that payment is overdue and ask for a payment date.",
+    "final": "Tone: formal and serious, a final notice. Stay respectful and ask for payment within 48 hours.",
+}
 
 
 def _chat(messages: list[dict], *, json_mode: bool, temperature: float) -> str:
@@ -89,7 +96,7 @@ def extract_invoice(chat_text: str) -> ExtractedInvoice:
     raise AIError("The AI returned data in the wrong format. Please try again.")
 
 
-def draft_reminder(invoice: dict, days_overdue: int) -> str:
+def draft_reminder(invoice: dict, days_overdue: int, tone: str = "friendly") -> str:
     if days_overdue > 0:
         timing = f"{days_overdue} day(s) overdue"
     else:
@@ -104,7 +111,7 @@ def draft_reminder(invoice: dict, days_overdue: int) -> str:
         f"Work: {', '.join(i['description'] for i in invoice['items'])}"
     )
     messages = [
-        {"role": "system", "content": REMINDER_PROMPT},
+        {"role": "system", "content": REMINDER_PROMPT + "\n" + REMINDER_TONES[tone]},
         {"role": "user", "content": details},
     ]
     text = _chat(messages, json_mode=False, temperature=0.5).strip()

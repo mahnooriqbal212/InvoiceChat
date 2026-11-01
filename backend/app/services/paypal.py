@@ -149,3 +149,24 @@ def verify_webhook(headers, event: dict) -> bool:
     except (httpx.HTTPError, PaymentError):
         return False
     return response.status_code == 200 and response.json().get("verification_status") == "SUCCESS"
+
+
+def send_reminder(invoice: dict, note: str) -> None:
+    """Ask PayPal to email a payment reminder to the client (PayPal allows 2 per day)."""
+    token = _get_token()
+    body = {
+        "subject": "Payment reminder",
+        "note": note[:4000],
+        "send_to_recipient": True,
+        "send_to_invoicer": False,
+    }
+    try:
+        response = httpx.post(
+            f"{settings.paypal_base_url}/v2/invoicing/invoices/{invoice['paypal_invoice_id']}/remind",
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=30,
+        )
+    except httpx.HTTPError as exc:
+        raise PaymentError(f"Could not reach PayPal: {exc}") from exc
+    _check(response)

@@ -4,9 +4,9 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Query
 
 from app import db as mongo
-from app.models import InvoiceCreate
 from app.services import ai, payments
-from app.utils import display_status, get_invoice_or_404, serialize
+from app.models import InvoiceCreate, ReminderSend
+from app.utils import display_status, get_invoice_or_404, save_client, serialize
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
@@ -30,6 +30,7 @@ def create_invoice(payload: InvoiceCreate):
     }
     result = mongo.invoices.insert_one(doc)
     doc["_id"] = result.inserted_id
+    save_client(payload.client_name, payload.client_email)
     return serialize(doc)
 
 
@@ -108,17 +109,57 @@ def send_invoice(invoice_id: str):
 
 
 @router.post("/{invoice_id}/reminder-draft")
-def reminder_draft(invoice_id: str):
-    """AI writes a polite reminder. We only draft it; the freelancer sends it."""
+def reminder_draft(
+    invoice_id: str,
+    tone: str = Query("friendly", description="friendly, firm or final"),
+):
+    """AI writes a reminder message in the chosen tone. Nothing is sent yet."""
+    if tone not in ai.REMINDER_TONES:
+        raise HTTPException(status_code=400, detail="tone must be friendly, firm or final")
     doc = get_invoice_or_404(invoice_id)
     if doc["status"] != "SENT":
         raise HTTPException(status_code=409, detail="Reminders are only for sent, unpaid invoices")
 
-    days_overdue = (date.today() - date.fromisoformat(doc["due_date"])).days
+    days_overdue = max((date.today() - date.fromisoformat(doc["due_date"])).days, 0)
     try:
-        text = ai.draft_reminder(doc, max(days_overdue, 0))
+        text = ai.draft_reminder(doc, days_overdue, tone)
     except ai.AIError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
-    mongo.invoices.update_one({"_id": doc["_id"]}, {"$set": {"reminder_draft": text}})
-    return {"reminder_draft": text, "days_overdue": max(days_overdue, 0)}
+    mongo.invoices.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {
+            "reminder_draft": text,
+            "reminder_tone": tone,
+            "reminder_status": "DRAFTED",
+            "reminder_drafted_at": datetime.now(timezone.utc),
+        }},
+    )
+    return {"reminder_draft": text, "tone": tone, "days_overdue": days_overdue}
+
+
+@router.post("/{invoice_id}/reminder/send")
+def send_reminder(invoice_id: str, payload: ReminderSend | None = None):
+    """The freelancer approves: PayPal emails its reminder, and we log the approved message."""
+    doc = get_invoice_or_404(invoice_id)
+    if doc["status"] != "SENT":
+        raise HTTPException(status_code=409, detail="Reminders are only for sent, unpaid invoices")
+
+    text = ((payload.text if payload else None) or doc.get("reminder_draft") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Write or generate a reminder first")
+
+    try:
+        payments.send_reminder(doc, text)
+    except payments.PaymentError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    now = datetime.now(timezone.utc)
+    mongo.invoices.update_one(
+        {"_id": doc["_id"]},
+        {
+            "$set": {"reminder_status": "SENT", "last_reminder_sent_at": now},
+            "$push": {"reminders": {"sent_at": now, "tone": doc.get("reminder_tone"), "text": text}},
+        },
+    )
+    return serialize(mongo.invoices.find_one({"_id": doc["_id"]}))

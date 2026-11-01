@@ -80,9 +80,10 @@ def paypal_webhook(request: Request, event: dict = Body(...)):
 @router.post("/dev/simulate-payment/{invoice_id}")
 def simulate_payment(invoice_id: str):
     """Testing helper (fake mode only): pretend the client paid the invoice."""
-    if settings.payment_provider != "fake":
-        raise HTTPException(status_code=404, detail="Not found")
     doc = get_invoice_or_404(invoice_id)
+    # Allowed in fake mode, or for demo invoices (they do not exist on PayPal)
+    if settings.payment_provider != "fake" and not doc.get("is_demo"):
+        raise HTTPException(status_code=404, detail="Not found")
     if doc["status"] != "SENT":
         raise HTTPException(status_code=409, detail="Invoice must be sent first")
 

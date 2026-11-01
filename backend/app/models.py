@@ -44,6 +44,11 @@ class ExtractRequest(BaseModel):
 class ExtractResponse(BaseModel):
     invoice: ExtractedInvoice
     warnings: list[str] = []
+    autofilled: list[str] = []  # fields filled from saved clients
+
+
+class ReminderSend(BaseModel):
+    text: str | None = Field(default=None, max_length=4000)
 
 
 # ---------- What we save (strict: must be correct before it goes to PayPal) ----------

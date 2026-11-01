@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
+from app import db as mongo
 from app.models import ExtractRequest, ExtractResponse
 from app.services import ai
 
@@ -13,6 +14,14 @@ def extract(payload: ExtractRequest):
         invoice = ai.extract_invoice(payload.chat_text)
     except ai.AIError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
+
+    # Fill the email from a saved client with the same name
+    autofilled = []
+    if invoice.client_name and not invoice.client_email:
+        saved = mongo.clients.find_one({"key": invoice.client_name.strip().lower()})
+        if saved and saved.get("email"):
+            invoice.client_email = saved["email"]
+            autofilled.append("client_email")
 
     # Tell the user what to double-check on the review screen
     warnings = []
@@ -29,4 +38,4 @@ def extract(payload: ExtractRequest):
     if not invoice.client_email:
         warnings.append("Client email not found. PayPal needs it to email the invoice.")
 
-    return ExtractResponse(invoice=invoice, warnings=warnings)
+    return ExtractResponse(invoice=invoice, warnings=warnings, autofilled=autofilled)
