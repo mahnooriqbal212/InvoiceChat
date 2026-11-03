@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api", tags=["extract"])
 def extract(payload: ExtractRequest):
     """Chat text in, invoice draft out. Nothing is saved here."""
     try:
-        invoice = ai.extract_invoice(payload.chat_text)
+        invoice = ai.extract_invoice(payload.chat_text, payload.language)
     except ai.AIError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

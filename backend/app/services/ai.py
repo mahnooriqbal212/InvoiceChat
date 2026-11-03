@@ -37,7 +37,13 @@ Rules:
 - Resolve dates like "next Friday" or "in 10 days" into YYYY-MM-DD using today's date.
 - currency: one of __CURRENCIES__. Words like dollars, euros, pounds map to USD, EUR, GBP. A lone $ means USD. If the currency is not mentioned or not in the list, use null.
 - notes: only useful extra info from the chat (payment terms, project name). Otherwise null.
+- __LANGUAGE_RULE__
 """
+
+LANGUAGE_RULES = {
+    "original": "Write item descriptions and notes in the same language as the chat. Do not translate them.",
+    "english": "Write item descriptions and notes in English, translating them if needed. Do not translate or change names or email addresses.",
+}
 
 REMINDER_PROMPT = """You write short, polite payment reminder messages for a freelancer.
 Write the message body only (no subject line). Plain text, 3 to 5 sentences.
@@ -70,11 +76,13 @@ def _chat(messages: list[dict], *, json_mode: bool, temperature: float) -> str:
         raise AIError(f"Groq request failed: {exc}") from exc
 
 
-def extract_invoice(chat_text: str) -> ExtractedInvoice:
+def extract_invoice(chat_text: str, language: str = "original") -> ExtractedInvoice:
     today = date.today()
     system = EXTRACT_PROMPT.replace("__TODAY__", today.isoformat()).replace(
         "__WEEKDAY__", today.strftime("%A")
-    ).replace("__CURRENCIES__", ", ".join(sorted(SUPPORTED_CURRENCIES)))
+    ).replace("__CURRENCIES__", ", ".join(sorted(SUPPORTED_CURRENCIES))).replace(
+        "__LANGUAGE_RULE__", LANGUAGE_RULES[language]
+    )
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": chat_text},

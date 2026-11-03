@@ -39,6 +39,7 @@ class ExtractedInvoice(BaseModel):
 
 class ExtractRequest(BaseModel):
     chat_text: str = Field(min_length=10, max_length=8000)
+    language: Literal["original", "english"] = "original"
 
 
 class ExtractResponse(BaseModel):
