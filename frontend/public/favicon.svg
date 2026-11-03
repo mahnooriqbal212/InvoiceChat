@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Drawn on a 16x16 pixel grid with whole-pixel edges only, so it stays sharp in the tab.
+       Colours: dark icon on light browser tabs, light icon on dark tabs. -->
+  <style>
+    .ink { fill: #2D4356; }
+    @media (prefers-color-scheme: dark) {
+      .ink { fill: #F4A58C; }
+    }
+  </style>
+
+  <!-- Invoice: a solid page with three text lines cut out -->
+  <path class="ink" fill-rule="evenodd" d="M1 5h9v11H1z M3 7h5v1H3z M3 10h5v1H3z M3 13h3v1H3z"/>
+
+  <!-- AI sparkle: long thin arms around a small thick centre -->
+  <g class="ink">
+    <rect x="11" y="0" width="1" height="7"/>  <!-- vertical arm -->
+    <rect x="8" y="3" width="7" height="1"/>   <!-- horizontal arm -->
+    <rect x="10" y="2" width="3" height="3"/>  <!-- centre -->
+  </g>
+</svg>
