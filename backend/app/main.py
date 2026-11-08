@@ -1,3 +1,6 @@
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -18,7 +21,11 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="InvoiceChat", lifespan=lifespan)
+app = FastAPI(
+    title="InvoiceChat", 
+    lifespan=lifespan, 
+    docs_url=None,  # we serve our own dark /docs below
+)
 
 # Lets the React app (running on another address) call this API
 app.add_middleware(
@@ -35,6 +42,22 @@ app.include_router(clients.router)
 app.include_router(agent.router)
 app.include_router(demo.router)
 app.include_router(pay.router)
+
+
+# serving our own dark /docs 
+DARK_CSS = """
+<style>
+  html { background: #fff; filter: invert(90%) hue-rotate(180deg); }
+  img, .microlight { filter: invert(100%) hue-rotate(180deg); }
+</style>
+"""
+
+@app.get("/docs", include_in_schema=False)
+def dark_docs():
+    page = get_swagger_ui_html(openapi_url=app.openapi_url, title=f"{app.title} - Docs")
+    html = page.body.decode().replace("</head>", DARK_CSS + "</head>")
+    return HTMLResponse(html)
+
 
 
 @app.get("/api/health")
