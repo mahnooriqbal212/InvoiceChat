@@ -16,6 +16,7 @@
     "ag-grid-community": "^36.2.0",
     "ag-grid-react": "^36.2.0",
     "axios": "^1.21.0",
+    "braintree-web-drop-in": "^1.48.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",
     "lucide-react": "^1.66.0",

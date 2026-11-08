@@ -22,6 +22,29 @@ export async function sendInvoice(id) {
   return data; // invoice with status SENT and payment_url
 }
 
+// ---------- The client's pay page ----------
+
+export async function getPayInvoice(id) {
+  const { data } = await api.get(`/api/pay/${id}`);
+  return data; // public invoice details, plus checkout_mode: "braintree", "test" or "paypal"
+}
+
+export async function createClientToken(id) {
+  const { data } = await api.post(`/api/pay/${id}/client-token`);
+  return data.client_token;
+}
+
+// body is { nonce } from the payment form, or { simulated_paypal: true }
+export async function payInvoice(id, body) {
+  const { data } = await api.post(`/api/pay/${id}`, body);
+  return data; // the updated public invoice
+}
+
+export async function simulatePayment(id) {
+  const { data } = await api.post(`/api/dev/simulate-payment/${id}`);
+  return data;
+}
+
 export async function searchClients(q) {
   const { data } = await api.get("/api/clients", { params: { q } });
   return data; // [{ id, name, email, invoice_count }]

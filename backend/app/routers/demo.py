@@ -2,9 +2,11 @@
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
+from bson import ObjectId
 from fastapi import APIRouter
 
 from app import db as mongo
+from app.services.payments import pay_url
 from app.utils import save_client
 
 router = APIRouter(prefix="/api/demo", tags=["demo"])
@@ -32,7 +34,9 @@ def seed_demo():
     for index, (client, email, currency, items, due_in, status) in enumerate(SAMPLES):
         created = now - timedelta(days=20 - index * 2)
         paypal_id = f"DEMO-{uuid.uuid4().hex[:8].upper()}"
+        invoice_id = ObjectId()
         docs.append({
+            "_id": invoice_id,
             "client_name": client,
             "client_email": email,
             "items": [{"description": d, "quantity": q, "unit_price": p} for d, q, p in items],
@@ -43,7 +47,7 @@ def seed_demo():
             "source_chat": f"Sample chat with {client}",
             "status": status,
             "paypal_invoice_id": None if status == "DRAFT" else paypal_id,
-            "payment_url": None if status == "DRAFT" else f"https://example.com/demo-invoice/{paypal_id}",
+            "payment_url": None if status == "DRAFT" else pay_url(invoice_id),
             "reminder_draft": None,
             "created_at": created,
             "sent_at": None if status == "DRAFT" else created + timedelta(days=1),

@@ -52,6 +52,11 @@ class ReminderSend(BaseModel):
     text: str | None = Field(default=None, max_length=4000)
 
 
+class PayRequest(BaseModel):
+    nonce: str | None = Field(default=None, max_length=4000)  # one-time code from the payment form
+    simulated_paypal: bool = False
+
+
 # ---------- What we save (strict: must be correct before it goes to PayPal) ----------
 
 class LineItem(BaseModel):

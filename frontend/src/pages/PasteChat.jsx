@@ -92,7 +92,7 @@ export default function PasteChat() {
     onSuccess: (sent) => {
       setInvoice(sent);
       setStage("sent");
-      toast.success("Invoice sent");
+      toast.success(sent.payment_provider === "paypal" ? "Invoice sent" : "Payment link ready");
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
     },
     onError: (error) => toast.error(getErrorMessage(error)),
@@ -148,7 +148,7 @@ export default function PasteChat() {
             </h1>
             <p className="max-w-lg text-pretty text-muted-foreground">
               Paste your conversation from WhatsApp, email or Slack. The AI finds the client, the work, the
-              prices and the due date. You check it, then send it through PayPal.
+              prices and the due date. You check it, then send your client a secure payment link.
             </p>
           </div>
 

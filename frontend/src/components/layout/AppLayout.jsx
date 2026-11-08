@@ -1,5 +1,6 @@
 import { Outlet, NavLink, Link } from "react-router-dom";
-import { Bot, LayoutDashboard, MessageSquarePlus, ReceiptText, Sparkles } from "lucide-react";
+import { Bot, LayoutDashboard, MessageSquarePlus } from "lucide-react";
+import Brand from "@/components/layout/Brand";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
 
@@ -11,12 +12,8 @@ const NAV = [
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-      <span className="relative grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-        <ReceiptText className="size-4.5" />
-        <Sparkles className="absolute -top-1 -right-1 size-3.5 fill-current text-highlight" />
-      </span>
-      <span className="text-base font-semibold tracking-tight">InvoiceChat</span>
+    <Link to="/" className="rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+      <Brand />
     </Link>
   );
 }

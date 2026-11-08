@@ -16,7 +16,7 @@ export default function SavedInvoice({ invoice, onSend, sending, onEdit, editing
           <CardTitle className="text-lg">Ready to send</CardTitle>
           <Badge variant="secondary">Draft</Badge>
         </div>
-        <CardDescription>Saved. Check the total, then send it through PayPal.</CardDescription>
+        <CardDescription>Saved. Check the total, then create the link your client pays from.</CardDescription>
       </CardHeader>
 
       <CardContent className="grid gap-5">
@@ -24,7 +24,7 @@ export default function SavedInvoice({ invoice, onSend, sending, onEdit, editing
           <p className="text-base font-medium">{invoice.client_name}</p>
           <p className="flex items-center gap-2 text-muted-foreground">
             <Mail className="size-4" />
-            {invoice.client_email || "No email: PayPal will create a payment link but not email it"}
+            {invoice.client_email || "No email saved for this client"}
           </p>
           <p className="flex items-center gap-2 text-muted-foreground">
             <CalendarDays className="size-4" />

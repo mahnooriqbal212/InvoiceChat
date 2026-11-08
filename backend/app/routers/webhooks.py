@@ -54,6 +54,9 @@ def apply_event(event: dict) -> str:
 @router.post("/webhooks/paypal")
 def paypal_webhook(request: Request, event: dict = Body(...)):
     """PayPal calls this when an invoice changes."""
+    # With Braintree nothing can verify these events, so a stranger could fake a payment
+    if settings.payment_provider == "braintree":
+        raise HTTPException(status_code=404, detail="Not found")
     if settings.payment_provider == "paypal" and not paypal.verify_webhook(request.headers, event):
         raise HTTPException(status_code=400, detail="Webhook signature check failed")
 

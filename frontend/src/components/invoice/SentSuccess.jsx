@@ -23,12 +23,14 @@ export default function SentSuccess({ invoice, onNew }) {
           <Check className="size-7" strokeWidth={2.5} />
         </span>
         <div className="grid gap-1.5">
-          <h2 className="text-xl font-semibold tracking-tight">Invoice sent</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {invoice.payment_provider === "paypal" ? "Invoice sent" : "Your payment link is ready"}
+          </h2>
           <p className="text-sm text-muted-foreground">
             {formatMoney(invoice.total, invoice.currency)} to {invoice.client_name}.{" "}
-            {invoice.client_email
+            {invoice.payment_provider === "paypal" && invoice.client_email
               ? `PayPal emailed it to ${invoice.client_email}.`
-              : "There is no client email, so share the payment link yourself."}
+              : "Copy the payment link below and send it to your client."}
           </p>
         </div>
 
