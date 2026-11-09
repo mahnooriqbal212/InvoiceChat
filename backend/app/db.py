@@ -7,6 +7,8 @@ db = client[settings.mongodb_db_name]
 invoices = db["invoices"]
 webhook_events = db["webhook_events"]
 clients = db["clients"]
+# One small document that remembers when the collections agent last ran (for the cooldown)
+agent_state = db["agent_state"]
 
 
 def init_indexes() -> None:

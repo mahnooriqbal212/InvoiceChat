@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Query
@@ -9,6 +9,8 @@ from app.models import InvoiceCreate, ReminderSend
 from app.utils import display_status, get_invoice_or_404, save_client, serialize
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
+
+REDRAFT_COOLDOWN = timedelta(seconds=10)  # per invoice, between two AI reminder drafts
 
 
 @router.post("", status_code=201)
@@ -121,12 +123,23 @@ def reminder_draft(
     if doc["status"] != "SENT":
         raise HTTPException(status_code=409, detail="Reminders are only for sent, unpaid invoices")
 
+    # Each draft is an AI call. A short wait between two manual rewrites of the same invoice stops
+    # rapid clicking (or a script) from using up the free Groq quota. The agent's own draft does
+    # not count, so the freelancer can change the tone right after the agent runs.
+    last_rewrite = doc.get("reminder_rewritten_at")
+    if last_rewrite:
+        wait = REDRAFT_COOLDOWN - (datetime.now(timezone.utc) - last_rewrite.replace(tzinfo=timezone.utc))
+        if wait.total_seconds() > 0:
+            seconds = int(wait.total_seconds() + 0.999)
+            raise HTTPException(status_code=429, detail=f"Please wait {seconds} seconds before writing a new draft.")
+
     days_overdue = max((date.today() - date.fromisoformat(doc["due_date"])).days, 0)
     try:
         text = ai.draft_reminder(doc, days_overdue, tone)
     except ai.AIError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
+    note = f"You chose a {tone} tone."
     mongo.invoices.update_one(
         {"_id": doc["_id"]},
         {"$set": {
@@ -134,9 +147,28 @@ def reminder_draft(
             "reminder_tone": tone,
             "reminder_status": "DRAFTED",
             "reminder_drafted_at": datetime.now(timezone.utc),
+            "reminder_rewritten_at": datetime.now(timezone.utc),
+            "agent_note": note,
         }},
     )
-    return {"reminder_draft": text, "tone": tone, "days_overdue": days_overdue}
+    return {"reminder_draft": text, "tone": tone, "days_overdue": days_overdue, "agent_note": note}
+
+
+@router.delete("/{invoice_id}/reminder-draft")
+def dismiss_reminder_draft(invoice_id: str):
+    """The freelancer rejects a draft. Nothing is sent; the agent waits 3 days before drafting again."""
+    doc = get_invoice_or_404(invoice_id)
+    if doc.get("reminder_status") != "DRAFTED":
+        raise HTTPException(status_code=409, detail="There is no reminder draft to dismiss")
+    mongo.invoices.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {
+            "reminder_status": "DISMISSED",
+            "reminder_dismissed_at": datetime.now(timezone.utc),
+            "reminder_draft": None,
+        }},
+    )
+    return serialize(mongo.invoices.find_one({"_id": doc["_id"]}))
 
 
 @router.post("/{invoice_id}/reminder/send")

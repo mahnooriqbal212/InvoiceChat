@@ -64,3 +64,46 @@ export async function searchClients(q) {
   const { data } = await api.get("/api/clients", { params: { q } });
   return data; // [{ id, name, email, invoice_count }]
 }
+
+// ---------- Collections agent and reminders ----------
+
+export async function runAgent() {
+  const { data } = await api.post("/api/agent/run");
+  return data; // { checked, drafted: [...], skipped: [...], errors: [...] }
+}
+
+export async function getAgentStatus() {
+  const { data } = await api.get("/api/agent/status");
+  return data; // { last_run_at, last_result, cooldown_seconds, max_per_run }
+}
+
+export async function getAgentQueue() {
+  const { data } = await api.get("/api/agent/queue");
+  return data; // invoices whose reminder draft waits for approval
+}
+
+export async function draftReminder(id, tone) {
+  const { data } = await api.post(`/api/invoices/${id}/reminder-draft`, null, { params: { tone } });
+  return data; // { reminder_draft, tone, days_overdue, agent_note }
+}
+
+export async function dismissReminder(id) {
+  const { data } = await api.delete(`/api/invoices/${id}/reminder-draft`);
+  return data;
+}
+
+// The freelancer approves the (possibly edited) message. Nothing is emailed by InvoiceChat itself.
+export async function sendReminder(id, text) {
+  const { data } = await api.post(`/api/invoices/${id}/reminder/send`, { text });
+  return data;
+}
+
+export async function getToneDays() {
+  const { data } = await api.get("/api/agent/tone-days");
+  return data; // { friendly, firm, final, defaults: { friendly, firm, final } }
+}
+
+export async function saveToneDays(rules) {
+  const { data } = await api.put("/api/agent/tone-days", rules);
+  return data;
+}

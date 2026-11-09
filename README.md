@@ -19,7 +19,7 @@ Freelancers agree on work in chat: "logo for $150, two banners at $40 each, pay 
 3. **Send a payment link.** The server calculates the total (never the AI) and creates the invoice through the payment provider.
 4. **Get paid.** The client opens a clean pay page with no login.
 5. **Watch it live.** The dashboard refreshes every 4 seconds. When a client pays, the row turns green and you get a "Sara Khan paid $230.00" notification.
-6. **Collect overdue money.** The collections agent finds overdue invoices and drafts a reminder in the right tone (friendly, firm or final, depending on how late the invoice is). **It never sends anything by itself**: you approve every message.
+6. **Collect overdue money.** On the **Agent queue** page, the collections agent finds overdue invoices and drafts a reminder in the right tone (friendly, firm or final, depending on how late the invoice is) and explains its choice. You decide the **tone rules**: from which day overdue each tone starts (by default friendly from day 1, firm from day 4, final from day 15), with checks that keep them in order. You can switch the tone (the AI rewrites the message), edit it, copy it or open it in your email app, then approve or dismiss it. **It never sends anything by itself**: every message waits for your approval. To protect the free AI quota without a login, the agent can run once a minute.
 
 ### Highlights
 

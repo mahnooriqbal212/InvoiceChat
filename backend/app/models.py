@@ -36,7 +36,7 @@ ZERO_DECIMAL_CURRENCIES = {"HUF", "JPY", "TWD"}
 class ExtractedItem(BaseModel):
     description: str
     quantity: int = 1
-    unit_price: float = 0
+    unit_price: float = Field(default=0, allow_inf_nan=False)
 
 
 class ExtractedInvoice(BaseModel):
@@ -65,6 +65,40 @@ class ExtractResponse(BaseModel):
     autofilled: list[str] = []  # fields filled from saved clients
 
 
+TONE_DAYS_MAX = 365  # keeps the numbers finite and sensible
+DEFAULT_TONE_DAYS = {"friendly": 1, "firm": 4, "final": 15}  # = up to 3 days friendly, up to 14 firm
+
+
+class ToneDays(BaseModel):
+    """From which day overdue the collections agent uses each tone.
+
+    Keep these rules and messages the same as frontend/src/lib/toneDays.js.
+    """
+    friendly: int
+    firm: int
+    final: int
+
+    @field_validator("friendly", "firm", "final", mode="before")
+    @classmethod
+    def whole_number(cls, value):
+        # bool is a kind of int in Python, and 3.5 or "3" are not whole numbers typed by the user
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError("Enter a whole number of days.")
+        if value > TONE_DAYS_MAX:
+            raise ValueError(f"Use {TONE_DAYS_MAX} days or fewer.")
+        return value
+
+    @model_validator(mode="after")
+    def in_order(self):
+        if self.friendly < 1:
+            raise ValueError("Friendly must start at day 1 or later.")
+        if self.firm <= self.friendly:
+            raise ValueError("Firm must start after the friendly day.")
+        if self.final <= self.firm:
+            raise ValueError("Final must start after the firm day.")
+        return self
+
+
 class ReminderSend(BaseModel):
     text: str | None = Field(default=None, max_length=4000)
 
@@ -79,7 +113,7 @@ class PayRequest(BaseModel):
 class LineItem(BaseModel):
     description: str = Field(min_length=1, max_length=200)
     quantity: int = Field(default=1, ge=1)
-    unit_price: float = Field(gt=0)
+    unit_price: float = Field(gt=0, allow_inf_nan=False)  # Infinity or NaN would break the total
 
 
 class InvoiceCreate(BaseModel):

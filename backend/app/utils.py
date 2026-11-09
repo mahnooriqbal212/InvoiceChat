@@ -19,7 +19,7 @@ def serialize(doc: dict) -> dict:
     """Turn a MongoDB document into JSON-friendly data."""
     out = {k: v for k, v in doc.items() if k != "_id"}
     out["id"] = str(doc["_id"])
-    for key in ("created_at", "sent_at", "paid_at", "reminder_drafted_at", "last_reminder_sent_at"):
+    for key in ("created_at", "sent_at", "paid_at", "reminder_drafted_at", "last_reminder_sent_at", "reminder_dismissed_at", "reminder_rewritten_at"):
         if out.get(key):
             out[key] = out[key].replace(tzinfo=timezone.utc).isoformat()
     if out.get("reminders"):

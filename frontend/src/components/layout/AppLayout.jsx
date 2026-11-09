@@ -1,4 +1,6 @@
 import { Outlet, NavLink, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getAgentQueue } from "@/api/invoices";
 import { Bot, LayoutDashboard, MessageSquarePlus } from "lucide-react";
 import Brand from "@/components/layout/Brand";
 import { cn } from "@/lib/utils";
@@ -19,6 +21,10 @@ function Logo() {
 }
 
 export default function AppLayout() {
+  // How many reminder drafts wait for approval (shown on the "Agent queue" menu item)
+  const { data: queue } = useQuery({ queryKey: ["agent-queue"], queryFn: getAgentQueue, refetchInterval: 30000, retry: false });
+  const waiting = queue?.length ?? 0;
+
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       {/* Soft emerald + rose glow behind the top of every page */}
@@ -46,9 +52,24 @@ export default function AppLayout() {
                   )
                 }
               >
-                <Icon className="size-4" />
+                <span className="relative">
+                  <Icon className="size-4" />
+                  {/* Drafts waiting for approval: a small dot on phones */}
+                  {to === "/agent" && waiting > 0 && (
+                    <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary ring-2 ring-background sm:hidden" />
+                  )}
+                </span>
                 {/* On phones only the icon shows, so the header fits */}
                 <span className="hidden sm:inline">{label}</span>
+                {to === "/agent" && waiting > 0 && (
+                  <span
+                    key={waiting}
+                    aria-label={`${waiting} waiting for approval`}
+                    className="hidden min-w-5 rounded-full bg-primary px-1.5 text-center text-[11px] font-semibold text-primary-foreground tabular-nums animate-in zoom-in-50 duration-300 sm:inline"
+                  >
+                    {waiting}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>
