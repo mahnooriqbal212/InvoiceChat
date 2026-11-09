@@ -28,8 +28,23 @@ async function copyText(text) {
 // Nothing is sent to the client by InvoiceChat.
 export default function ReminderCard({ invoice, index }) {
   const queryClient = useQueryClient();
-  const [text, setText] = useState(invoice.reminder_draft ?? "");
+  const serverDraft = invoice.reminder_draft ?? "";
+  const [text, setText] = useState(serverDraft);
+  const [base, setBase] = useState(serverDraft); // the server's text that the box was filled from
+  const [newVersion, setNewVersion] = useState(null); // a newer server text, waiting because you edited the box
   const [leaving, setLeaving] = useState(null); // "approved" | "dismissed" while the card animates out
+
+  // The agent can rewrite this draft (for example after the tone rules changed). If you have not
+  // edited the box, show the new text. If you have, keep your text and offer the new version.
+  if (serverDraft !== base) {
+    setBase(serverDraft);
+    if (text === base || text === serverDraft) {
+      setText(serverDraft);
+      setNewVersion(null);
+    } else {
+      setNewVersion(serverDraft);
+    }
+  }
   const tone = toneMeta(invoice.reminder_tone);
   const hint = dueHint(invoice);
   const isPayPal = invoice.payment_provider === "paypal";
@@ -188,6 +203,32 @@ export default function ReminderCard({ invoice, index }) {
             <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Sparkles className="size-4 animate-pulse text-highlight" />
               Rewriting in a {toneMeta(rewrite.variables).label.toLowerCase()} tone…
+            </span>
+          </div>
+        )}
+        {newVersion && (
+          <div
+            role="status"
+            className="mt-2 flex flex-col gap-2 rounded-lg bg-accent/50 px-3 py-2 text-sm text-accent-foreground sm:flex-row sm:items-center sm:justify-between animate-in fade-in-0 slide-in-from-top-1 duration-300"
+          >
+            <span className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-highlight" />
+              The agent wrote a new {tone.label.toLowerCase()} version. Your edits are kept until you choose.
+            </span>
+            <span className="flex shrink-0 gap-1">
+              <Button size="sm" variant="ghost" onClick={() => setNewVersion(null)}>
+                Keep mine
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setText(newVersion);
+                  setNewVersion(null);
+                }}
+              >
+                Use new version
+              </Button>
             </span>
           </div>
         )}

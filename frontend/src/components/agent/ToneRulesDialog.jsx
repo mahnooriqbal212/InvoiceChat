@@ -88,15 +88,18 @@ function ToneRulesForm({ rules, onDone }) {
               </Label>
               <Input
                 id={`tone-${tone.key}`}
-                type="number"
+                // A plain text box (no up/down arrows). Only digits can be typed or pasted,
+                // at most 3 of them, so "-", ".", "e" or letters never get in.
+                type="text"
                 inputMode="numeric"
-                min={1}
-                max={TONE_DAYS_MAX}
-                step={1}
+                pattern="[0-9]*"
+                autoComplete="off"
+                maxLength={String(TONE_DAYS_MAX).length}
                 value={form[tone.key]}
                 onChange={(event) => {
+                  const digits = event.target.value.replace(/\D/g, "").slice(0, String(TONE_DAYS_MAX).length);
                   setTouched(true);
-                  setForm((f) => ({ ...f, [tone.key]: event.target.value }));
+                  setForm((f) => ({ ...f, [tone.key]: digits }));
                 }}
                 aria-invalid={shown[tone.key] ? true : undefined}
                 aria-describedby={shown[tone.key] ? `tone-${tone.key}-error` : undefined}

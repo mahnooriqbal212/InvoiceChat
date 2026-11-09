@@ -148,6 +148,7 @@ def reminder_draft(
             "reminder_status": "DRAFTED",
             "reminder_drafted_at": datetime.now(timezone.utc),
             "reminder_rewritten_at": datetime.now(timezone.utc),
+            "reminder_tone_source": "you",  # the agent never overwrites a tone you picked
             "agent_note": note,
         }},
     )

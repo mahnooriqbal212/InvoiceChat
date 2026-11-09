@@ -14,10 +14,20 @@ export default function AgentRunSummary({ result, ranAt, fresh }) {
     ...errors.map((e) => ({ icon: CircleAlert, tone: "text-destructive", client: e.client, text: e.error })),
   ];
 
+  const created = drafted.filter((d) => !d.updated).length;
+  const updated = drafted.length - created; // rewritten because the tone rules changed
+  const s = (n) => (n === 1 ? "" : "s");
+
   let headline;
   if (checked === 0) headline = "No overdue invoices. Nothing to do.";
-  else if (drafted.length === 0) headline = `Checked ${checked} overdue invoice${checked === 1 ? "" : "s"}. No new drafts needed.`;
-  else headline = `Drafted ${drafted.length} reminder${drafted.length === 1 ? "" : "s"} from ${checked} overdue invoice${checked === 1 ? "" : "s"}.`;
+  else if (drafted.length === 0) headline = `Checked ${checked} overdue invoice${s(checked)}. No new drafts needed.`;
+  else {
+    const parts = [];
+    if (created) parts.push(`drafted ${created} reminder${s(created)}`);
+    if (updated) parts.push(`rewrote ${updated} for your new tone rules`);
+    const text = parts.join(" and ");
+    headline = `${text.charAt(0).toUpperCase()}${text.slice(1)} from ${checked} overdue invoice${s(checked)}.`;
+  }
 
   return (
     <section
@@ -41,7 +51,8 @@ export default function AgentRunSummary({ result, ranAt, fresh }) {
           <span className="text-sm font-medium">{headline}</span>
           <span className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
             {ranAt && <span>Last run {timeAgo(ranAt)}</span>}
-            <span className="text-success">{drafted.length} drafted</span>
+            <span className="text-success">{created} drafted</span>
+            {updated > 0 && <span className="text-success">{updated} rewritten</span>}
             <span>{skipped.length} skipped</span>
             {errors.length > 0 && <span className="text-destructive">{errors.length} failed</span>}
           </span>

@@ -49,13 +49,39 @@ def _pick_tone(days_overdue: int, rules: dict) -> str | None:
     return None
 
 
+def _plural_days(days: int) -> str:
+    return f"{days} day{'s' if days != 1 else ''}"
+
+
+def _tone_chosen_by_you(doc: dict) -> bool:
+    """True if the freelancer picked this draft's tone with the tone buttons (the agent then never overwrites it)."""
+    source = doc.get("reminder_tone_source")
+    if source:
+        return source == "you"
+    return str(doc.get("agent_note") or "").startswith("You chose")  # drafts saved before this field existed
+
+
+def _waiting_draft_reason(doc: dict, tone: str | None, days: int, rules: dict) -> str | None:
+    """A draft is already waiting. Returns why it is kept, or None if the agent should rewrite it.
+
+    The agent rewrites its own draft only when the tone rules now give a different tone
+    (for example after the freelancer moved "firm" from day 4 to day 5).
+    """
+    if _tone_chosen_by_you(doc):
+        return "a draft is waiting; you chose its tone yourself, so it is kept"
+    if tone is None:
+        return (f"a draft is waiting and kept; with your tone rules, reminders start at day {rules['friendly']} "
+                f"and this invoice is {_plural_days(days)} overdue. Dismiss it if you want to wait")
+    if tone == doc.get("reminder_tone"):
+        return "a draft is already waiting for your approval"
+    return None
+
+
 def _skip_reason(doc: dict, now: datetime) -> str | None:
-    """Do not nag: skip if we reminded recently, a draft is waiting, or the draft was dismissed."""
+    """Do not nag: skip if we reminded recently or the draft was dismissed. (Waiting drafts are checked separately.)"""
     sent = _naive(doc.get("last_reminder_sent_at"))
     if sent and now - sent < REMIND_AGAIN_AFTER:
         return "a reminder was sent in the last 3 days"
-    if doc.get("reminder_status") == "DRAFTED":
-        return "a draft is already waiting for your approval"
     dismissed = _naive(doc.get("reminder_dismissed_at"))
     if doc.get("reminder_status") == "DISMISSED" and dismissed and now - dismissed < REMIND_AGAIN_AFTER:
         return "you dismissed a draft in the last 3 days"
@@ -106,9 +132,13 @@ def run_agent():
         info = {"id": str(doc["_id"]), "client": doc["client_name"]}
         days = (today - date.fromisoformat(doc["due_date"])).days
         tone = _pick_tone(days, rules)
-        reason = _skip_reason(doc, now)
-        if not reason and tone is None:
-            reason = f"only {days} day{'s' if days != 1 else ''} overdue; friendly reminders start at day {rules['friendly']}"
+        waiting = doc.get("reminder_status") == "DRAFTED"
+        if waiting:
+            reason = _waiting_draft_reason(doc, tone, days, rules)
+        else:
+            reason = _skip_reason(doc, now)
+            if not reason and tone is None:
+                reason = f"only {_plural_days(days)} overdue; friendly reminders start at day {rules['friendly']}"
         if not reason and len(result["drafted"]) >= MAX_PER_RUN:
             reason = "limit per run reached"
         if reason:
@@ -121,18 +151,24 @@ def run_agent():
             result["errors"].append({**info, "error": str(exc)})
             continue
 
-        note = f"Agent chose a {tone} tone because the invoice is {days} day{'s' if days != 1 else ''} overdue."
+        if waiting:
+            old = doc.get("reminder_tone") or "another"
+            note = (f"Agent rewrote it in a {tone} tone (it was {old}) because your tone rules changed. "
+                    f"The invoice is {_plural_days(days)} overdue.")
+        else:
+            note = f"Agent chose a {tone} tone because the invoice is {_plural_days(days)} overdue."
         mongo.invoices.update_one(
             {"_id": doc["_id"]},
             {"$set": {
                 "reminder_draft": text,
                 "reminder_tone": tone,
+                "reminder_tone_source": "agent",
                 "reminder_status": "DRAFTED",
                 "reminder_drafted_at": datetime.now(timezone.utc),
                 "agent_note": note,
             }},
         )
-        result["drafted"].append({**info, "days_overdue": days, "tone": tone, "reason": note})
+        result["drafted"].append({**info, "days_overdue": days, "tone": tone, "reason": note, "updated": waiting})
 
     mongo.agent_state.update_one(
         {"_id": "run"}, {"$set": {"last_result": result, "last_finished_at": _now()}}

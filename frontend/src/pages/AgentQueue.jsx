@@ -64,9 +64,14 @@ export default function AgentQueue() {
     mutationFn: runAgent,
     onSuccess: (result) => {
       setLastRun(result);
-      const n = result.drafted.length;
-      if (n > 0) toast.success(`The agent drafted ${n} reminder${n === 1 ? "" : "s"}`, { description: "Review them below." });
-      else toast(result.checked ? "No new drafts needed" : "No overdue invoices", { description: "See the run summary for details." });
+      const updated = result.drafted.filter((d) => d.updated).length;
+      const created = result.drafted.length - updated;
+      if (created > 0 || updated > 0) {
+        const parts = [];
+        if (created) parts.push(`drafted ${created} reminder${created === 1 ? "" : "s"}`);
+        if (updated) parts.push(`rewrote ${updated} for your new tone rules`);
+        toast.success(`The agent ${parts.join(" and ")}`, { description: "Review them below." });
+      } else toast(result.checked ? "No new drafts needed" : "No overdue invoices", { description: "See the run summary for details." });
       if (result.errors.length) toast.error(`${result.errors.length} draft${result.errors.length === 1 ? "" : "s"} failed. Try again later.`);
     },
     onError: (error) => toast.error(getErrorMessage(error)),
