@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from app.config import settings
 
-client = MongoClient(settings.mongodb_uri)  # sets up the connection to Atlassets up the connection to Atlas
+client = MongoClient(settings.mongodb_uri)  # sets up the connection to Atlas
 db = client[settings.mongodb_db_name]
 
 invoices = db["invoices"]

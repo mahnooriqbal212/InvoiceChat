@@ -96,6 +96,11 @@ export default function ClientAutocomplete({ id, value, onChange, onPick, invali
                   <span className="block truncate text-xs text-muted-foreground">{client.email}</span>
                 )}
               </span>
+              {client.is_demo && (
+                <span className="shrink-0 rounded-sm bg-secondary px-1 py-px text-[10px] font-medium tracking-wide text-secondary-foreground uppercase">
+                  Sample
+                </span>
+              )}
               {client.invoice_count > 0 && (
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {client.invoice_count} {client.invoice_count === 1 ? "invoice" : "invoices"}

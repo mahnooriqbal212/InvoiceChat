@@ -40,15 +40,18 @@ def get_invoice_or_404(invoice_id: str) -> dict:
     return doc
 
 
-def save_client(name: str, email: str | None, count: bool = True) -> None:
-    """Remember a client so their details can be auto-filled next time."""
+def save_client(name: str, email: str | None) -> None:
+    """Remember a client from a real invoice, so their details can be auto-filled next time.
+
+    Sample clients are saved by routers/demo.py instead. If a real invoice uses the name of a
+    sample client, that client becomes real here (is_demo=False), so "Remove sample data" keeps it.
+    """
     now = datetime.now(timezone.utc)
     update: dict = {
-        "$set": {"name": name.strip(), "last_invoiced_at": now},
+        "$set": {"name": name.strip(), "last_invoiced_at": now, "is_demo": False},
         "$setOnInsert": {"created_at": now},
+        "$inc": {"invoice_count": 1},
     }
     if email:
         update["$set"]["email"] = email.strip()
-    if count:
-        update["$inc"] = {"invoice_count": 1}
     mongo.clients.update_one({"key": name.strip().lower()}, update, upsert=True)

@@ -20,6 +20,7 @@ def search_clients(q: str = Query("", max_length=50)):
             "name": d["name"],
             "email": d.get("email"),
             "invoice_count": d.get("invoice_count", 0),
+            "is_demo": bool(d.get("is_demo")),  # sample client from "Load sample data"
         }
         for d in docs
     ]
