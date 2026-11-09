@@ -5,14 +5,30 @@ const ThemeProviderContext = createContext({
   setTheme: () => null,
 });
 
+// Some browsers (strict privacy settings, some in-app browsers) block storage and throw an error
+// when we touch it. Without these try/catch blocks the whole app, even the client pay page, went blank.
+function readTheme(storageKey, fallback) {
+  try {
+    return localStorage.getItem(storageKey) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveTheme(storageKey, theme) {
+  try {
+    localStorage.setItem(storageKey, theme);
+  } catch {
+    // The theme still changes for this visit; it just won't be remembered.
+  }
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = "system",
   storageKey = "invoicechat-theme",
 }) {
-  const [theme, setThemeState] = useState(
-    () => localStorage.getItem(storageKey) || defaultTheme,
-  );
+  const [theme, setThemeState] = useState(() => readTheme(storageKey, defaultTheme));
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -37,7 +53,7 @@ export function ThemeProvider({
   }, [theme]);
 
   const setTheme = (newTheme) => {
-    localStorage.setItem(storageKey, newTheme);
+    saveTheme(storageKey, newTheme);
     setThemeState(newTheme);
   };
 

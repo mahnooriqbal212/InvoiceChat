@@ -24,15 +24,19 @@ function daysBetween(a, b) {
 }
 
 // A short, friendly line about the due date: "Due in 6 days", "9 days overdue", "Due today"
+// Whether it is overdue comes from the server (display_status), never from the browser's clock.
+// The server (Render, UTC) and a browser in Pakistan (UTC+5) can be on different dates for a
+// few hours each night; the browser's clock is only used to count the days.
 export function dueHint(invoice) {
   const status = invoice.display_status;
   if (!invoice.due_date || status === "PAID" || status === "CANCELLED") return null;
   const days = daysBetween(todayIso(), invoice.due_date);
-  if (status === "OVERDUE" || days < 0) {
+  if (status === "OVERDUE") {
     const late = Math.max(1, -days);
     return { text: `${late} day${late === 1 ? "" : "s"} overdue`, tone: "text-destructive" };
   }
-  if (days === 0) return { text: "Due today", tone: "text-warning" };
+  // Not overdue on the server, but the browser is already on the next day: still "today"
+  if (days <= 0) return { text: "Due today", tone: "text-warning" };
   if (days === 1) return { text: "Due tomorrow", tone: "text-warning" };
   return { text: `Due in ${days} days`, tone: "text-muted-foreground" };
 }

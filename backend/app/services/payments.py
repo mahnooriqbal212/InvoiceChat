@@ -12,6 +12,7 @@ from app.config import settings
 from app.services import braintree_provider, paypal
 from app.services.braintree_provider import SIMULATED_PAYPAL_NONCE, PaymentDeclined
 from app.services.paypal import PaymentError  # re-exported for the routers
+from app.utils import display_status
 
 __all__ = [
     "PaymentConflict",
@@ -81,6 +82,8 @@ def public_view(invoice: dict) -> dict:
         "due_date": invoice["due_date"],
         "notes": invoice.get("notes"),
         "status": invoice["status"],
+        # The server decides "overdue", so the pay page and the dashboard always agree
+        "display_status": display_status(invoice),
         "paid_at": invoice["paid_at"].replace(tzinfo=timezone.utc).isoformat() if invoice.get("paid_at") else None,
         "payment_method": invoice.get("payment_method"),
         "checkout_mode": mode,

@@ -90,7 +90,8 @@ function InvoiceView({ invoice, onPaid, onRefresh }) {
 }
 
 function InvoiceSummary({ invoice }) {
-  const overdue = invoice.status === "SENT" && invoice.due_date < new Date().toLocaleDateString("en-CA");
+  // The server decides this (not the browser's clock), so it matches the dashboard
+  const overdue = invoice.display_status === "OVERDUE";
   return (
     <Card className="[--card-spacing:--spacing(6)] animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
       <CardHeader>
