@@ -4,7 +4,6 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Query
 
 from app import db as mongo
-from app.config import settings
 from app.services import ai, payments
 from app.models import InvoiceCreate, ReminderSend
 from app.utils import display_status, get_invoice_or_404, save_client, serialize
@@ -103,7 +102,7 @@ def send_invoice(invoice_id: str):
         "status": "SENT",
         "paypal_invoice_id": sent["provider_invoice_id"],
         "payment_url": sent["payment_url"],
-        "payment_provider": settings.payment_provider,
+        "payment_provider": sent["provider"],  # "demo" for sample invoices
         "sent_at": datetime.now(timezone.utc),
     }
     mongo.invoices.update_one({"_id": doc["_id"]}, {"$set": updates})

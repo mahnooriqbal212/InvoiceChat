@@ -40,8 +40,19 @@ def pay_url(invoice_id) -> str:
 
 
 def create_and_send_invoice(invoice: dict) -> dict:
+    """Returns {provider, provider_invoice_id, payment_url}."""
+    # Sample (demo) invoices never reach PayPal or Braintree, whatever PAYMENT_PROVIDER says.
+    # They have fake client emails, so a real provider would reject them (or create junk invoices).
+    # Their pay page shows the labelled "Simulate payment (test)" button instead.
+    if invoice.get("is_demo"):
+        return {
+            "provider": "demo",
+            "provider_invoice_id": f"DEMO-{uuid.uuid4().hex[:8].upper()}",
+            "payment_url": pay_url(invoice["_id"]),
+        }
+
     if settings.payment_provider == "paypal":
-        return paypal.create_and_send_invoice(invoice)
+        return {"provider": "paypal", **paypal.create_and_send_invoice(invoice)}
 
     if settings.payment_provider == "braintree":
         # Stops here with a clear message if this currency has no merchant account
@@ -51,6 +62,7 @@ def create_and_send_invoice(invoice: dict) -> dict:
         prefix = "FAKE"
 
     return {
+        "provider": settings.payment_provider,
         "provider_invoice_id": f"{prefix}-{uuid.uuid4().hex[:10].upper()}",
         "payment_url": pay_url(invoice["_id"]),
     }

@@ -90,6 +90,8 @@ npm install
 npm run dev
 ```
 
+`npm audit` warnings come from development tools (ESLint, shadcn CLI) and do not affect the built app.
+
 Open <http://localhost:5173>. On the **Dashboard**, click **Sample data → Load sample data** to fill the app with example invoices. Sample invoices are marked "Sample" and can be removed at any time without touching real ones.
 
 ### Environment variables (backend)
