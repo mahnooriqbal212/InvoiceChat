@@ -1,0 +1,35 @@
+import { themeQuartz } from "ag-grid-community";
+
+// AG Grid has its own theme system. We point every colour at the app's CSS variables
+// (from src/index.css), so the grid switches between light and dark together with the app.
+export const gridTheme = themeQuartz.withParams({
+  fontFamily: "inherit",
+  fontSize: 14,
+  headerFontSize: 12,
+  headerFontWeight: 500,
+  backgroundColor: "var(--card)",
+  foregroundColor: "var(--foreground)",
+  cellTextColor: "var(--foreground)",
+  accentColor: "var(--primary)",
+  borderColor: "var(--border)",
+  chromeBackgroundColor: "var(--card)",
+  headerBackgroundColor: "color-mix(in srgb, var(--muted) 55%, var(--card))",
+  headerTextColor: "var(--muted-foreground)",
+  rowHoverColor: "color-mix(in srgb, var(--accent) 35%, transparent)",
+  selectedRowBackgroundColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+  oddRowBackgroundColor: "var(--card)",
+  inputBackgroundColor: "var(--background)",
+  inputBorder: { color: "var(--input)" },
+  wrapperBorder: false,
+  wrapperBorderRadius: 0,
+  rowBorder: { color: "var(--border)" },
+  headerRowBorder: { color: "var(--border)" },
+  columnBorder: false,
+  headerColumnResizeHandleColor: "var(--border)",
+  spacing: 7,
+  cellHorizontalPadding: 16,
+  rowHeight: 60,
+  headerHeight: 42,
+  iconSize: 14,
+  focusShadow: { radius: 3, spread: 0, color: "color-mix(in srgb, var(--ring) 50%, transparent)" },
+});

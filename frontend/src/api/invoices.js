@@ -12,6 +12,21 @@ export async function createInvoice(payload) {
   return data; // saved invoice, including the server-calculated total
 }
 
+export async function listInvoices() {
+  const { data } = await api.get("/api/invoices");
+  return data; // newest first, each with display_status (DRAFT, PENDING, OVERDUE, PAID, CANCELLED)
+}
+
+export async function seedDemo() {
+  const { data } = await api.post("/api/demo/seed");
+  return data; // { created }
+}
+
+export async function clearDemo() {
+  const { data } = await api.delete("/api/demo");
+  return data; // { deleted }
+}
+
 export async function deleteInvoice(id) {
   const { data } = await api.delete(`/api/invoices/${id}`);
   return data;

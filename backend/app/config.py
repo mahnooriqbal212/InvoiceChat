@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     # AI
     groq_api_key: str
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-120b"
 
     # Payments: "fake" (no account needed), "braintree" or "paypal"
     payment_provider: str = "fake"
