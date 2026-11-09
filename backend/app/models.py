@@ -1,7 +1,24 @@
+import re
 from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+# Client email rule. Keep this rule the same as frontend/src/lib/invoiceForm.js (EMAIL and
+# EMAIL_MAX_LENGTH), so the browser and the server never disagree about an address.
+# It checks the shape only (something@something.something, no spaces). Nobody can check
+# that an inbox really exists without sending it a message.
+# Python's "\s" and str.strip() treat a few rare invisible characters differently from
+# JavaScript's "\s" and trim(), so we spell out JavaScript's exact list of space characters.
+JS_SPACES = "\t\n\v\f\r    -     　﻿"
+EMAIL_PATTERN = re.compile(f"[^{JS_SPACES}@]+@[^{JS_SPACES}@]+\\.[^{JS_SPACES}@]+")
+JS_TRIM = re.compile(f"^[{JS_SPACES}]+|[{JS_SPACES}]+$")
+EMAIL_MAX_LENGTH = 254  # the longest an email address can be
+
+
+def js_length(text: str) -> int:
+    """Length the way JavaScript counts it (an emoji counts as 2), to match the browser check."""
+    return len(text.encode("utf-16-le")) // 2
 
 
 # BRL, CNY and MYR only work for in-country PayPal accounts, so they are off by default.
@@ -73,6 +90,23 @@ class InvoiceCreate(BaseModel):
     source_chat: str | None = None
     notes: str | None = Field(default=None, max_length=1000)
     currency: str | None = "USD"
+
+    @field_validator("client_email", mode="before")
+    @classmethod
+    def check_email(cls, value):
+        """Trim spaces; empty means "no email" (allowed); otherwise it must look like an email."""
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ValueError("This does not look like an email address.")
+        value = JS_TRIM.sub("", value)  # same as JavaScript's trim()
+        if not value:
+            return None
+        if js_length(value) > EMAIL_MAX_LENGTH:
+            raise ValueError(f"Keep the email under {EMAIL_MAX_LENGTH} characters.")
+        if not EMAIL_PATTERN.fullmatch(value):
+            raise ValueError("This does not look like an email address.")
+        return value
 
     @model_validator(mode="after")
     def check_currency(self):

@@ -6,7 +6,7 @@ from pymongo.errors import DuplicateKeyError
 
 from app import db as mongo
 from app.config import settings
-from app.services import paypal
+from app.services import payments, paypal
 from app.utils import get_invoice_or_404
 
 router = APIRouter(prefix="/api", tags=["webhooks"])
@@ -54,11 +54,15 @@ def apply_event(event: dict) -> str:
 @router.post("/webhooks/paypal")
 def paypal_webhook(request: Request, event: dict = Body(...)):
     """PayPal calls this when an invoice changes."""
-    # With Braintree nothing can verify these events, so a stranger could fake a payment
-    if settings.payment_provider == "braintree":
+    # Whenever PayPal is set up, every event must pass PayPal's signature check. This also works
+    # after switching PAYMENT_PROVIDER to braintree, so PayPal invoices sent earlier still turn PAID.
+    if settings.payment_provider == "paypal" or settings.paypal_webhook_id:
+        if not paypal.verify_webhook(request.headers, event):
+            raise HTTPException(status_code=400, detail="Webhook signature check failed")
+    elif settings.payment_provider == "braintree":
+        # PayPal is not set up, so nothing can verify these events and a stranger could fake a payment
         raise HTTPException(status_code=404, detail="Not found")
-    if settings.payment_provider == "paypal" and not paypal.verify_webhook(request.headers, event):
-        raise HTTPException(status_code=400, detail="Webhook signature check failed")
+    # (fake mode without PayPal: unverified events are accepted, for local testing only)
 
     event_id = event.get("id")
     if not event_id:
@@ -82,10 +86,11 @@ def paypal_webhook(request: Request, event: dict = Body(...)):
 
 @router.post("/dev/simulate-payment/{invoice_id}")
 def simulate_payment(invoice_id: str):
-    """Testing helper (fake mode only): pretend the client paid the invoice."""
+    """Testing helper: pretend the client paid a test invoice (sample, or sent in fake mode)."""
     doc = get_invoice_or_404(invoice_id)
-    # Allowed in fake mode, or for demo invoices (they do not exist on PayPal)
-    if settings.payment_provider != "fake" and not doc.get("is_demo"):
+    # Only invoices whose pay page shows the "Simulate payment (test)" button.
+    # Real Braintree or PayPal invoices can never be marked paid this way.
+    if payments.checkout_mode(doc) != "test":
         raise HTTPException(status_code=404, detail="Not found")
     if doc["status"] != "SENT":
         raise HTTPException(status_code=409, detail="Invoice must be sent first")

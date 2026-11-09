@@ -18,6 +18,7 @@ __all__ = [
     "PaymentConflict",
     "PaymentDeclined",
     "PaymentError",
+    "checkout_mode",
     "client_token",
     "create_and_send_invoice",
     "pay_invoice",
@@ -70,21 +71,32 @@ def create_and_send_invoice(invoice: dict) -> dict:
 
 def send_reminder(invoice: dict, note: str) -> None:
     pid = str(invoice.get("paypal_invoice_id") or "")
-    # Only real PayPal invoices can be reminded through a provider
-    if settings.payment_provider == "paypal" and not pid.startswith(("FAKE-", "DEMO-")):
+    # Only invoices that were sent through PayPal can be reminded through PayPal,
+    # even if PAYMENT_PROVIDER has changed since
+    if checkout_mode(invoice) == "paypal" and not pid.startswith(("FAKE-", "DEMO-", "BT-")):
         paypal.send_reminder(invoice, note)
 
 
-def _checkout_mode(invoice: dict) -> str:
-    """How the pay page takes this payment: "test", "braintree" or "paypal"."""
-    if invoice.get("is_demo") or settings.payment_provider == "fake":
+def checkout_mode(invoice: dict) -> str:
+    """How the pay page takes this payment: "test", "braintree" or "paypal".
+
+    It follows the provider that SENT this invoice (saved as payment_provider), not the
+    current PAYMENT_PROVIDER setting. So after switching providers, invoices that are still
+    unpaid keep their own checkout: a Braintree invoice still shows the Braintree card form,
+    a PayPal invoice still links to PayPal. (Braintree keys must stay in .env for that.)
+    Invoices saved before this field existed fall back to the current setting.
+    """
+    if invoice.get("is_demo"):
         return "test"
-    return settings.payment_provider
+    provider = invoice.get("payment_provider") or settings.payment_provider
+    if provider in ("braintree", "paypal"):
+        return provider
+    return "test"  # "fake", "demo" or anything unknown: the labelled test button
 
 
 def public_view(invoice: dict) -> dict:
     """Only what the client needs. It leaves out the source chat and reminder notes."""
-    mode = _checkout_mode(invoice)
+    mode = checkout_mode(invoice)
     return {
         "id": str(invoice["_id"]),
         "client_name": invoice["client_name"],
@@ -106,7 +118,7 @@ def public_view(invoice: dict) -> dict:
 
 
 def _require_braintree_checkout(invoice: dict) -> None:
-    if _checkout_mode(invoice) != "braintree":
+    if checkout_mode(invoice) != "braintree":
         raise PaymentConflict("This invoice is not paid through Braintree")
     if invoice["status"] != "SENT":
         raise PaymentConflict("This invoice is not waiting for payment")

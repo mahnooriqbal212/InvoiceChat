@@ -25,7 +25,11 @@ export function toForm(invoice) {
   };
 }
 
+// Client email rule. Keep this rule the same as backend/app/models.py (EMAIL_PATTERN and
+// EMAIL_MAX_LENGTH), so the browser and the server never disagree about an address.
+// Shape only: something@something.something, no spaces, at most 254 characters.
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_MAX_LENGTH = 254;
 
 // Same rules as the backend's InvoiceCreate model, so most mistakes are caught before saving.
 // Returns {} when everything is fine.
@@ -33,9 +37,9 @@ export function validate(form) {
   const errors = {};
   if (!form.client_name.trim()) errors.client_name = "Client name is required.";
   else if (form.client_name.trim().length > 100) errors.client_name = "Keep it under 100 characters.";
-  if (form.client_email.trim() && !EMAIL.test(form.client_email.trim())) {
-    errors.client_email = "This does not look like an email address.";
-  }
+  const email = form.client_email.trim(); // empty = no email, which is allowed
+  if (email.length > EMAIL_MAX_LENGTH) errors.client_email = `Keep the email under ${EMAIL_MAX_LENGTH} characters.`;
+  else if (email && !EMAIL.test(email)) errors.client_email = "This does not look like an email address.";
   if (!CURRENCIES.includes(form.currency)) errors.currency = "Choose a currency.";
   if (!form.due_date) errors.due_date = "Choose a due date.";
   if (form.notes.length > 1000) errors.notes = "Keep notes under 1000 characters.";
