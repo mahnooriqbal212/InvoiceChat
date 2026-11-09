@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  Check,
   ChevronDown,
   Database,
   Download,
@@ -36,10 +37,12 @@ import { clearDemo, listInvoices, seedDemo } from "@/api/invoices";
 import { getErrorMessage } from "@/api/client";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { EXPORT_COLUMNS, csvFileName, downloadCsv } from "@/lib/invoiceCsv";
 
 const POLL_MS = 4000; // live updates: ask the server for the list every 4 seconds
 
+// Status tabs (tablets and computers)
 const FILTERS = [
   { key: "ALL", label: "All" },
   { key: "PENDING", label: "Pending" },
@@ -48,6 +51,9 @@ const FILTERS = [
   { key: "DRAFT", label: "Drafts" },
   { key: "CANCELLED", label: "Cancelled" },
 ];
+
+// On phones the cards are the filters; these words describe the active one
+const FILTER_LABELS = { PENDING: "pending", OVERDUE: "overdue", PAID: "paid", DRAFT: "drafts", CANCELLED: "cancelled" };
 
 const EMPTY_MESSAGES = {
   ALL: "No invoices match your search.",
@@ -137,12 +143,13 @@ export default function Dashboard() {
     // minmax(0, 1fr) lets wide children (the filter tabs) scroll instead of stretching the page on phones
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       {/* Title row */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="grid gap-1">
+      {/* Phones: title on the left, buttons stacked on the right. Wider screens: one row. */}
+      <div className="flex items-start justify-between gap-3 sm:items-end">
+        <div className="grid min-w-0 gap-1">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard</h1>
           <LiveStatus error={error} hasData={!!invoices} updatedAt={dataUpdatedAt} />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={demoBusy}>
@@ -165,7 +172,8 @@ export default function Dashboard() {
           <Button variant="outline" onClick={exportCsv} disabled={!invoices || all.length === 0}>
             <Download /> Export CSV
           </Button>
-          <Button asChild>
+          {/* Hidden on phones: the header nav already has a "New invoice" button */}
+          <Button className="hidden sm:inline-flex" asChild>
             <Link to="/">
               <MessageSquarePlus /> New invoice
             </Link>
@@ -198,18 +206,51 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              {/* Phones: the tabs scroll sideways (scrollbar hidden). Desktop: no scrolling at all. */}
-              <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 scrollbar-none md:mx-0 md:overflow-visible md:px-0">
-                <Tabs value={filter} onValueChange={setFilter}>
-                  <TabsList className="h-9">
-                    {showFilters.map((f) => (
-                      <TabsTrigger key={f.key} value={f.key} className="px-2.5">
-                        {f.label}
-                        <span className="rounded-full bg-foreground/8 px-1.5 text-[11px] tabular-nums">{counts[f.key] ?? 0}</span>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
+              {/* Tablets and computers: the five status tabs */}
+              <Tabs value={filter} onValueChange={setFilter} className="hidden sm:flex">
+                <TabsList className="h-9">
+                  {showFilters.map((f) => (
+                    <TabsTrigger key={f.key} value={f.key} className="px-2.5">
+                      {f.label}
+                      <span className="rounded-full bg-foreground/8 px-1.5 text-[11px] tabular-nums">{counts[f.key] ?? 0}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+
+              {/* Phones: the tabs don't fit, so the cards are the filters and this checkbox clears the filter */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:hidden">
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={filter === "ALL"}
+                  onClick={() => setFilter("ALL")}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-2.5 rounded-lg border bg-card px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                    filter === "ALL" ? "border-accent bg-accent/40" : "hover:bg-secondary",
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "grid size-4 place-items-center rounded-[5px] border transition-colors",
+                      filter === "ALL" ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background",
+                    )}
+                  >
+                    {filter === "ALL" && <Check className="size-3" strokeWidth={3} />}
+                  </span>
+                  Show all invoices
+                  <span className="rounded-full bg-foreground/8 px-1.5 text-[11px] tabular-nums">{counts.ALL}</span>
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  {filter === "ALL" ? (
+                    "Tip: click a card above to filter."
+                  ) : (
+                    <>
+                      Showing <span className="font-medium text-foreground">{FILTER_LABELS[filter]}</span> only ({counts[filter] ?? 0})
+                    </>
+                  )}
+                </span>
               </div>
               <div className="relative md:w-72">
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -280,15 +321,16 @@ function LiveStatus({ error, hasData, updatedAt }) {
     );
   }
   return (
-    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+    <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
       <span className="relative flex size-2">
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />
         <span className="relative inline-flex size-2 rounded-full bg-success" />
       </span>
       Live
       {updatedAt > 0 && (
-        <span className="tabular-nums">
-          · updated {new Date(updatedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" })}
+        <span className="whitespace-nowrap tabular-nums">
+          · <span className="hidden sm:inline">updated </span>
+          {new Date(updatedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" })}
         </span>
       )}
     </p>
