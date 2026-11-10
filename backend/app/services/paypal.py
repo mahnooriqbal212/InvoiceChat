@@ -1,4 +1,5 @@
 """All real PayPal calls live here. Uses the PayPal Invoicing API (v2)."""
+import logging
 import time
 from datetime import date
 
@@ -6,6 +7,8 @@ import httpx
 
 from app.config import settings
 from app.models import ZERO_DECIMAL_CURRENCIES
+
+logger = logging.getLogger("uvicorn.error")  # uvicorn's logger, so the messages show in Render's logs
 
 
 class PaymentError(Exception):
@@ -127,7 +130,11 @@ def create_and_send_invoice(invoice: dict) -> dict:
 
 def verify_webhook(headers, event: dict) -> bool:
     """Ask PayPal to confirm that a webhook really came from PayPal."""
-    if not settings.paypal_webhook_id:
+    webhook_id = (settings.paypal_webhook_id or "").strip()  # a pasted space would break the check
+    if not webhook_id:
+        return False
+    if not headers.get("paypal-transmission-sig"):
+        logger.warning("PayPal webhook rejected: no PayPal signature headers (not sent by PayPal)")
         return False
     body = {
         "auth_algo": headers.get("paypal-auth-algo"),
@@ -135,7 +142,7 @@ def verify_webhook(headers, event: dict) -> bool:
         "transmission_id": headers.get("paypal-transmission-id"),
         "transmission_sig": headers.get("paypal-transmission-sig"),
         "transmission_time": headers.get("paypal-transmission-time"),
-        "webhook_id": settings.paypal_webhook_id,
+        "webhook_id": webhook_id,
         "webhook_event": event,
     }
     try:
@@ -146,9 +153,18 @@ def verify_webhook(headers, event: dict) -> bool:
             headers={"Authorization": f"Bearer {token}"},
             timeout=20,
         )
-    except (httpx.HTTPError, PaymentError):
+    except (httpx.HTTPError, PaymentError) as error:
+        logger.warning("PayPal webhook check could not reach PayPal: %s", error)
         return False
-    return response.status_code == 200 and response.json().get("verification_status") == "SUCCESS"
+    if response.status_code == 200 and response.json().get("verification_status") == "SUCCESS":
+        return True
+    # Shown in Render's logs. No secrets here: only PayPal's answer and the event type.
+    logger.warning(
+        "PayPal webhook signature check failed for %s: HTTP %s %s. Check that PAYPAL_WEBHOOK_ID is the "
+        "webhook's ID from the same PayPal app as PAYPAL_CLIENT_ID.",
+        event.get("event_type"), response.status_code, response.text[:300],
+    )
+    return False
 
 
 def send_reminder(invoice: dict, note: str) -> None:
