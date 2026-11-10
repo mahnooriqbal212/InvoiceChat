@@ -38,7 +38,7 @@ export default function PayInvoice() {
     <div className="relative min-h-screen bg-background text-foreground">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(40%_80%_at_25%_0%,var(--highlight),transparent),radial-gradient(40%_80%_at_75%_0%,var(--primary),transparent)] opacity-25 dark:opacity-20"
+        className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(40%_80%_at_25%_0%,var(--highlight),transparent),radial-gradient(40%_80%_at_75%_0%,var(--highlight),transparent)] opacity-25 dark:opacity-20"
       />
       <header className="relative mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
         <Brand />

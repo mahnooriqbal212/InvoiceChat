@@ -30,7 +30,7 @@ export default function AppLayout() {
       {/* Soft emerald + rose glow behind the top of every page */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(40%_80%_at_25%_0%,var(--highlight),transparent),radial-gradient(40%_80%_at_75%_0%,var(--primary),transparent)] opacity-25 dark:opacity-20"
+        className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(40%_80%_at_25%_0%,var(--highlight),transparent),radial-gradient(40%_80%_at_75%_0%,var(--highlight),transparent)] opacity-25 dark:opacity-20"
       />
 
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
