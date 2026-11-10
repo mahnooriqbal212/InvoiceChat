@@ -50,17 +50,20 @@ function DetailsBody({ invoice, onClose }) {
   const busy = send.isPending || remove.isPending;
 
   return (
-    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
-      <DialogHeader className="gap-1 pr-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <DialogTitle className="text-lg">{invoice.client_name}</DialogTitle>
+    // grid-cols-[minmax(0,1fr)]: the popup's single column may shrink to the popup's width.
+    // Without it, a long unbreakable text (like a PayPal payment link) stretches the column
+    // wider than the popup and a sideways scrollbar appears.
+    <DialogContent className="max-h-[calc(100dvh-2rem)] grid-cols-[minmax(0,1fr)] overflow-x-hidden overflow-y-auto sm:max-w-lg">
+      <DialogHeader className="min-w-0 gap-1 pr-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <DialogTitle className="min-w-0 text-lg wrap-break-word">{invoice.client_name}</DialogTitle>
           <StatusBadge status={invoice.display_status} />
           {invoice.is_demo && <span className="text-xs text-muted-foreground">Sample data</span>}
         </div>
-        <DialogDescription>{invoice.client_email || "No email saved for this client"}</DialogDescription>
+        <DialogDescription className="break-all">{invoice.client_email || "No email saved for this client"}</DialogDescription>
       </DialogHeader>
 
-      <div className="grid gap-4">
+      <div className="grid min-w-0 gap-4">
         <ul className="grid gap-2">
           {invoice.items.map((item, index) => (
             <li key={index} className="flex items-baseline justify-between gap-4">
@@ -91,12 +94,12 @@ function DetailsBody({ invoice, onClose }) {
           {invoice.reminders?.length > 0 && <Fact label="Reminders sent">{invoice.reminders.length}</Fact>}
         </dl>
 
-        {invoice.notes && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{invoice.notes}</p>}
+        {invoice.notes && <p className="text-sm whitespace-pre-wrap wrap-break-word text-muted-foreground">{invoice.notes}</p>}
 
         {invoice.payment_url && (
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 gap-1.5">
             <span className="text-xs font-medium text-muted-foreground">Payment link</span>
-            <div className="flex items-center gap-1 rounded-lg border bg-background/60 p-1 pl-3">
+            <div className="flex min-w-0 items-center gap-1 rounded-lg border bg-background/60 p-1 pl-3">
               <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground" title={invoice.payment_url}>
                 {invoice.payment_url}
               </span>
