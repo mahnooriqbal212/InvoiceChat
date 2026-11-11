@@ -26,6 +26,15 @@ export function toToneDays(form) {
   return Object.fromEntries(TONE_DAY_FIELDS.map((key) => [key, Number(String(form[key]).trim())]));
 }
 
+// The tone your rules give for an invoice that is `days` days overdue (same idea as the agent's
+// _pick_tone). Used by "Draft reminders" on the dashboard; there you asked for the reminder
+// yourself, so an invoice that is earlier than the friendly day still gets a friendly one.
+export function pickTone(days, rules) {
+  if (days >= rules.final) return "final";
+  if (days >= rules.firm) return "firm";
+  return "friendly";
+}
+
 // "days 1–3" / "day 3" / "day 15 onwards": the range each tone covers
 export function toneRanges(rules) {
   const span = (from, to) => (from === to ? `day ${from}` : `days ${from}–${to}`);

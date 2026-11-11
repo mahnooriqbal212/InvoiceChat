@@ -4,7 +4,16 @@
 
 Built for the PayPal AI Hackathon 2026.
 
-> **Live demo:** _coming soon_ · **Demo video:** _coming soon_
+> **Live demo:** <https://invoice-chat-omega.vercel.app> · **API docs:** <https://invoicechat-api.onrender.com/docs> · **Demo video:** _coming soon_
+>
+> The backend runs on Render's free plan and sleeps when nobody uses it, so the first page load can take about a minute. After that it is fast.
+
+## Try it in 2 minutes
+
+1. Open the [live demo](https://invoice-chat-omega.vercel.app) and go to **Dashboard → Sample data → Load sample data**. You get paid, pending, overdue and draft invoices in several currencies.
+2. Go to **New invoice**, paste a chat such as *"Hi! Can you invoice me for 4 hours of website fixes at $100/hour? Due November 30. My email is client@example.com"*, then click **Extract invoice**, check the fields, click **Save and review total**, then **Send invoice**.
+3. Open the payment link. The live demo uses the **PayPal sandbox**: pay with a PayPal sandbox buyer account, and the dashboard turns the invoice **Paid** a few seconds later (through a signature-verified PayPal webhook). Sample invoices have a clearly labelled **"Simulate payment (test)"** button instead.
+4. On the **Dashboard**, try the filters under each column, tick a few rows, and click **Draft reminders**. Then open **Agent queue** to review, edit and approve the AI drafts.
 
 ---
 
@@ -18,18 +27,36 @@ Freelancers agree on work in chat: "logo for $150, two banners at $40 each, pay 
 2. **Review and edit.** Nothing is saved until you check it. Warnings point out anything the AI wasn't sure about. Saved clients autocomplete, and a missing email is filled in from past invoices.
 3. **Send a payment link.** The server calculates the total (never the AI) and creates the invoice through the payment provider.
 4. **Get paid.** The client opens a clean pay page with no login.
-5. **Watch it live.** The dashboard refreshes every 4 seconds. When a client pays, the row turns green and you get a "Sara Khan paid $230.00" notification.
+5. **Watch it live.** The dashboard refreshes every 4 seconds. When a client pays, the row turns green, the totals update and you get a "Sara Khan paid $230.00" notification.
 6. **Collect overdue money.** On the **Agent queue** page, the collections agent finds overdue invoices and drafts a reminder in the right tone (friendly, firm or final, depending on how late the invoice is) and explains its choice. You decide the **tone rules**: from which day overdue each tone starts (by default friendly from day 1, firm from day 4, final from day 15), with checks that keep them in order. You can switch the tone (the AI rewrites the message), edit it, copy it or open it in your email app, then approve or dismiss it. **It never sends anything by itself**: every message waits for your approval. To protect the free AI quota without a login, the agent can run once a minute.
 
 ### Highlights
 
 - **21 currencies** from PayPal's supported list. JPY, HUF and TWD are shown without decimals. Amounts in different currencies are **never added together**.
 - **Overdue is calculated, not stored.** An invoice is overdue when it has been sent, the due date has passed, and it isn't paid.
-- **Dashboard built with AG Grid:** sortable columns, pagination, custom status badges, cells that flash on live changes, and one-click **CSV export**. The grid theme uses the app's own colours in light and dark mode.
+- **A real data grid (AG Grid)** for the dashboard, with filters, live totals per currency and bulk AI actions. See [the dashboard section](#the-dashboard-ag-grid) below.
 - **Works on phones.** On small screens the grid becomes tappable invoice cards.
 - **Safe AI.** Chat text is treated as data (a prompt-injection guard), extraction runs at temperature 0 in JSON mode and is checked against a strict model, and the AI retries once with its validation error when its first answer is invalid.
 - **Validated twice.** The review form checks every field instantly, and the server checks the same rules again (for example, the client email's format), so nothing invalid is saved or sent to a payment provider, even through the API.
 - **Safe payments.** The amount always comes from the database. A 2-minute lock prevents double charges, and payment webhooks are signature-verified and processed only once.
+
+## The dashboard (AG Grid)
+
+The invoice table is built with **AG Grid Community** (free features only) and is connected to the rest of the app:
+
+| Feature | What you can do |
+|---|---|
+| **Three kinds of filters working together** | The status tabs (All, Pending, Overdue, Paid, Drafts) are an AG Grid *external filter*, the search box is its *quick filter* (it searches client, email, currency and every item), and each column has its own filter under the header: text for Client and Items, "500 or more" for Amount, a date picker for Due. Example: unpaid invoices over $500 due this month. |
+| **Live totals rows, one per currency** | Pinned rows at the bottom add up the invoices you can see, and they change as you filter. Different currencies get their own row and are never added together. Cancelled invoices are not counted. |
+| **Row selection and bulk actions** | Tick rows (or tick the header box for every filtered row), then **Export selected** to CSV or **Draft reminders**: the AI writes a reminder for each selected overdue invoice in the tone your tone rules give. Drafts wait in the Agent queue for approval, and nothing is sent. |
+| **Coloured rows** | Overdue rows get a soft red tint and edge, paid rows a soft green one. |
+| **Tooltips** | Hover over the Items cell to see every item with quantity, price and line total. |
+| **Keyboard** | Arrow keys move between cells, Enter opens the invoice details, and Space ticks a row. |
+| **Live updates** | Rows update in place every 4 seconds (row IDs), and the Amount and Status cells flash when they change, for example when a payment arrives. |
+| **CSV export** | Exports exactly what the filters show (or only the ticked rows), using 13 clean columns that the screen doesn't show. |
+| **Theme** | `themeQuartz.withParams` uses the app's own colour variables, so the grid, filter menus and checkboxes follow light and dark mode. |
+
+Also: sorting on every column (Status sorts Overdue first), column resizing, pagination (10/25/50), custom cell renderers and a custom "nothing found" message. On phones the grid becomes tappable cards.
 
 ## Payments: PayPal and Braintree
 
@@ -53,7 +80,7 @@ InvoiceChat supports three payment providers, chosen with one setting (`PAYMENT_
 |---|---|
 | Backend | Python, FastAPI, Pydantic v2, PyMongo, MongoDB Atlas, httpx, Groq SDK, Braintree SDK |
 | Frontend | React 19, Vite, Tailwind CSS v4, shadcn/ui (Radix), AG Grid Community, TanStack Query, axios, sonner |
-| Hosting | Render (backend), Vercel (frontend) |
+| Hosting | Render (backend, free web service), Vercel (frontend) |
 
 ```
 backend/app/
@@ -62,7 +89,8 @@ backend/app/
   services/          ai.py (Groq), payments.py (provider switch), paypal.py, braintree_provider.py
 frontend/src/
   pages/             PasteChat, Dashboard, AgentQueue, PayInvoice
-  components/        invoice/ (new-invoice flow), dashboard/ (cards, grid, details), pay/, ui/ (shadcn)
+  components/        invoice/ (new-invoice flow), dashboard/ (cards, AG Grid, selection bar, details),
+                     agent/ (reminder cards, tone rules), pay/, ui/ (shadcn)
   api/               one function per backend endpoint
 ```
 

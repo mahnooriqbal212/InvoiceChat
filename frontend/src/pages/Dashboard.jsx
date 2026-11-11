@@ -122,17 +122,24 @@ export default function Dashboard() {
   const openInvoice = openId ? all.find((invoice) => invoice.id === openId) ?? null : null;
 
   function exportCsv() {
-    if (rows.length === 0) {
-      toast.error("There are no invoices to export with the current filter.");
+    const api = isDesktop ? gridApi.current : null;
+    // On computers the grid filters (tabs, search and column filters), so count what it shows
+    let count = rows.length;
+    if (api) {
+      count = 0;
+      api.forEachNodeAfterFilter(() => count++);
+    }
+    if (count === 0) {
+      toast.error("There are no invoices to export with the current filters.");
       return;
     }
-    if (isDesktop && gridApi.current) {
-      // AG Grid's built-in CSV export: rows as currently filtered and sorted
-      gridApi.current.exportDataAsCsv({ fileName: csvFileName(), columnKeys: EXPORT_COLUMNS.map((c) => c.id) });
+    if (api) {
+      // AG Grid's built-in CSV export: rows as currently filtered and sorted, without the totals rows
+      api.exportDataAsCsv({ fileName: csvFileName(), columnKeys: EXPORT_COLUMNS.map((c) => c.id), skipPinnedBottom: true });
     } else {
       downloadCsv(rows);
     }
-    toast.success(`Exported ${rows.length} invoice${rows.length === 1 ? "" : "s"}`);
+    toast.success(`Exported ${count} invoice${count === 1 ? "" : "s"}`);
   }
 
   const showFilters = FILTERS.filter((f) => f.key !== "CANCELLED" || counts.CANCELLED);
@@ -266,8 +273,11 @@ export default function Dashboard() {
             </div>
 
             {isDesktop ? (
+              // The grid gets every invoice and filters them itself (tabs, search and column filters)
               <InvoiceGrid
-                rows={rows}
+                rows={all}
+                statusFilter={filter}
+                search={search}
                 emptyMessage={search ? EMPTY_MESSAGES.ALL : EMPTY_MESSAGES[filter]}
                 onOpen={(invoice) => setOpenId(invoice.id)}
                 onGridReady={(api) => (gridApi.current = api)}
@@ -282,6 +292,7 @@ export default function Dashboard() {
             )}
             <p className="text-xs text-muted-foreground">
               Amounts in different currencies are shown separately and never added together.
+              {isDesktop && " The totals rows add up the invoices shown, one row per currency (cancelled ones are not counted). Hover over items to see them all, use the arrow keys and Enter to open an invoice."}
             </p>
           </div>
         </>

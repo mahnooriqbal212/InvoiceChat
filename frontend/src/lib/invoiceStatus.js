@@ -32,13 +32,19 @@ export function dueHint(invoice) {
   if (!invoice.due_date || status === "PAID" || status === "CANCELLED") return null;
   const days = daysBetween(todayIso(), invoice.due_date);
   if (status === "OVERDUE") {
-    const late = Math.max(1, -days);
+    const late = daysOverdue(invoice);
     return { text: `${late} day${late === 1 ? "" : "s"} overdue`, tone: "text-destructive" };
   }
   // Not overdue on the server, but the browser is already on the next day: still "today"
   if (days <= 0) return { text: "Due today", tone: "text-warning" };
   if (days === 1) return { text: "Due tomorrow", tone: "text-warning" };
   return { text: `Due in ${days} days`, tone: "text-muted-foreground" };
+}
+
+// How many days an OVERDUE invoice is late (at least 1). 0 for any other status.
+export function daysOverdue(invoice) {
+  if (invoice.display_status !== "OVERDUE" || !invoice.due_date) return 0;
+  return Math.max(1, -daysBetween(todayIso(), invoice.due_date));
 }
 
 // "Bakery logo design" or "Bakery logo design +1 more"
