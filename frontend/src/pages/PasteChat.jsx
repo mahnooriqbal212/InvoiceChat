@@ -172,7 +172,7 @@ export default function PasteChat() {
                   "You: Sure! I can also do 2 banners at $40 each.\n" +
                   "Sara: Perfect, please send the invoice. I'll pay by next Friday."
                 }
-                className="min-h-56 resize-y border-0 bg-transparent p-0 text-base leading-relaxed shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0 dark:bg-transparent md:text-base"
+                className="max-h-[min(28rem,60dvh)] min-h-56 scrollbar-themed resize-y overflow-y-auto border-0 bg-transparent p-0 text-base leading-relaxed shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0 dark:bg-transparent md:text-base"
               />
             </CardContent>
             <CardFooter className="flex flex-col items-stretch gap-3 border-t py-3 sm:flex-row sm:items-center sm:justify-between">

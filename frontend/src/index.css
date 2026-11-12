@@ -163,6 +163,13 @@
     }
 }
 
+/* Scroll bar in the theme colours (rose in light mode, peach in dark mode) instead of the grey default.
+   Used on the chat box of the New invoice page. */
+.scrollbar-themed {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--primary) 75%, transparent) transparent;
+}
+
 /* Agent queue: the moving bar while the agent works */
 @keyframes agent-progress {
     0% { transform: translateX(-100%); }
