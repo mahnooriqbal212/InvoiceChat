@@ -18,15 +18,15 @@ export default function SentSuccess({ invoice, onNew }) {
 
   return (
     <Card className="mx-auto w-full max-w-xl [--card-spacing:--spacing(8)] animate-in fade-in-0 zoom-in-95 duration-300">
-      <CardContent className="grid justify-items-center gap-5 text-center">
+      <CardContent className="grid min-w-0 grid-cols-[minmax(0,1fr)] justify-items-center gap-5 text-center">
         <span className="grid size-14 place-items-center rounded-full bg-success/15 text-success animate-in zoom-in-50 duration-500">
           <Check className="size-7" strokeWidth={2.5} />
         </span>
-        <div className="grid gap-1.5">
+        <div className="grid w-full min-w-0 gap-1.5">
           <h2 className="text-xl font-semibold tracking-tight">
             {invoice.payment_provider === "paypal" ? "Invoice sent" : "Your payment link is ready"}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm wrap-break-word text-muted-foreground">
             {formatMoney(invoice.total, invoice.currency)} to {invoice.client_name}.{" "}
             {invoice.payment_provider === "paypal" && invoice.client_email
               ? `PayPal emailed it to ${invoice.client_email}.`
@@ -35,7 +35,7 @@ export default function SentSuccess({ invoice, onNew }) {
         </div>
 
         {invoice.payment_url && (
-          <div className="flex w-full items-center gap-2 rounded-lg border bg-background/60 p-1.5 pl-3 text-left">
+          <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border bg-background/60 p-1.5 pl-3 text-left">
             <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground" title={invoice.payment_url}>
               {invoice.payment_url}
             </span>

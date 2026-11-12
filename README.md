@@ -74,6 +74,21 @@ InvoiceChat supports three payment providers, chosen with one setting (`PAYMENT_
 
 **Why both?** PayPal Developer accounts can't be created from Pakistan, where the developer lives. Braintree was the first fallback; the PayPal sandbox integration is set up with a teammate's account in a supported country.
 
+## How InvoiceChat uses PayPal, AI and sponsor tools
+
+| Tool | What it does in InvoiceChat |
+|---|---|
+| **PayPal Invoicing API v2** (sandbox) | Creates and sends the invoice, then reads PayPal's payer link. The client pays on PayPal's own invoice page. |
+| **PayPal OAuth 2.0** | Gets the access token for every PayPal call (cached until it expires). |
+| **PayPal Webhooks + Verify Webhook Signature API** | Payment and cancel events are signature-checked, stored once (unique event ID) and turn the invoice **Paid** on the live dashboard. |
+| **PayPal invoice reminders** | When you approve a reminder for a PayPal invoice, PayPal sends its reminder to the client. |
+| **Braintree** (a PayPal service, sandbox) | Optional provider: InvoiceChat's own pay page with the Braintree Drop-in card form, one merchant account per currency. |
+| **Groq API, model `openai/gpt-oss-120b`** (AI) | 1) Reads a pasted chat and returns the client, items, currency and due date as checked JSON. 2) Writes payment reminders in a friendly, firm or final tone for the collections agent. The AI never calculates totals and never sends anything by itself. |
+| **AG Grid Community** (sponsor) | The dashboard grid: filters, live per-currency totals, row selection with bulk AI reminder drafts, CSV export. |
+| **Render** (sponsor) | Hosts the FastAPI backend (free web service) and receives the PayPal webhooks. |
+
+The frontend is hosted on Vercel. This project was built with help from Claude Code (an AI coding assistant).
+
 ## Tech stack
 
 | Part | Tools |
